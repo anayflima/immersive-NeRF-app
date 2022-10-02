@@ -1,8 +1,40 @@
 .project-logo {
   padding-top: 50px;
+  height: 40vmax;
   /* width: 100px; */
   /* border-color: purple; */
   /* border-style: dashed; */
+}
+
+.header-image {
+  padding-top: 0px;
+  height:20vmax;
+}
+
+.top-left {
+  position:fixed;
+	top:0; 
+	left:0;
+}
+
+.top-right {
+  position:fixed; 
+	top:1em; 
+	right:0;
+}
+
+
+.bottom-left {
+  position:fixed; 
+	bottom:3em;
+  /* height: 25vmax; */
+	left:0;
+}
+
+.bottom-right {
+  position:fixed; 
+	bottom:3em; 
+	right:0;
 }
 
 .App {
@@ -30,6 +62,7 @@
   align-items: center;
   /* justify-content: center; */
   font-size: calc(10px + 2vmin);
+  font-family: "Verdana";
   color: #074971;
 }
 
@@ -42,11 +75,19 @@
 }
 
 .developers {
-  font-family: "Lucida Bright";
+  /* font-family: "Lucida Bright"; */
+  font-family: "Helvetica";
   margin-top: -10px
 }
 
 .App-main {
+  font-weight: 500;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* justify-content: center; */
+  font-size: calc(1px + 2vmin);
+  font-family: "Verdana";
   color: #074971;
 }
 

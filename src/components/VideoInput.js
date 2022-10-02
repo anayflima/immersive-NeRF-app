@@ -31,7 +31,7 @@ export default function VideoInput(props) {
       />
       <p>
       {!source &&
-        <IconButton onClick={handleChoose}>
+        <IconButton variant="contained" onClick={handleChoose}>
           Upload a video
         <UploadIcon />
         </IconButton>}
