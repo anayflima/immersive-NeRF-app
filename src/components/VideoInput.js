@@ -1,6 +1,7 @@
 import React from "react";
 import "./styles.css";
 import IconButton from '@mui/material/IconButton';
+import Button from '@mui/material/Button';
 import UploadIcon from '@mui/icons-material/Upload';
 
 export default function VideoInput(props) {
@@ -31,10 +32,13 @@ export default function VideoInput(props) {
       />
       <p>
       {!source &&
-        <IconButton variant="contained" onClick={handleChoose}>
-          {/* Upload a video */}
+        <Button variant="contained" onClick={handleChoose}>
+          Upload a video
+        </Button>}
+        {/* <div>
+          <br></br>
         <UploadIcon size="large"></UploadIcon>
-        </IconButton>}
+        </div> */}
       </p>
       {source && (
         <video

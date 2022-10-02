@@ -7,6 +7,7 @@ import projectLogo from './assets/project_logo.png';
 import VideoInput from "./components/VideoInput";
 import './App.css';
 import GitHubIcon from '@mui/icons-material/GitHub';
+import Button from '@mui/material/Button';
 
 function App() {
   const handlePageChange = () => {
@@ -29,7 +30,11 @@ function App() {
         Build your own metaverse <br></br>
         Upload a video and dive into it through VR headsets
         <VideoInput width={400} height={300} />
-        <a href="https://immersive-nerf.herokuapp.com/">Here's your rendered immersive experience</a>
+        <a href="https://immersive-nerf.herokuapp.com/">
+          <Button variant="outlined">
+          Here's your rendered immersive experience
+          </Button>
+          </a>
         <img className="bottom-right" src={whale} alt="Logo" />
         <img className="bottom-left" src={wave} alt="Logo" />
       </main> 
