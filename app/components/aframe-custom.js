@@ -12,4 +12,4 @@ AFRAME.registerComponent('lowpoly', {
     // Then we can use our properties like so:
     console.log('The color of our component is ', this.data.color)
   }
-}
+})

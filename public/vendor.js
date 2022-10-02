@@ -44,7 +44,8 @@
   };
 
   var expandAlias = function(name) {
-    return aliases[name] ? expandAlias(aliases[name]) : name;
+    var val = aliases[name];
+    return (val && name !== val) ? expandAlias(val) : name;
   };
 
   var _resolve = function(name, dep) {
@@ -514,55 +515,88 @@ AFRAME.registerComponent('particle-system', {
             oneOf: ['default', 'dust', 'snow', 'rain']
         },
         maxAge: {
-            type: 'number'
+            type: 'number',
+            default: 6
         },
         positionSpread: {
-            type: 'vec3'
+            type: 'vec3',
+            default: { x: 0, y: 0, z: 0 }
         },
         type: {
-            type: 'number'
+            type: 'number',
+            default: SPE.distributions.BOX
         },
         rotationAxis: {
-            type: 'string'
+            type: 'string',
+            default: 'x'
         },
         rotationAngle: {
-            type: 'number'
+            type: 'number',
+            default: 0
+        },
+        rotationAngleSpread: {
+            type: 'number',
+            default: 0
         },
         accelerationValue: {
-            type: 'vec3'
+            type: 'vec3',
+            default: { x: 0, y: -10, z: 0 }
         },
         accelerationSpread: {
-            type: 'vec3'
+            type: 'vec3',
+            default: { x: 10, y: 0, z: 10 }
         },
         velocityValue: {
-            type: 'vec3'
+            type: 'vec3',
+            default: { x: 0, y: 25, z: 0 }
         },
         velocitySpread: {
-            type: 'vec3'
+            type: 'vec3',
+            default: { x: 10, y: 7.5, z: 10 }
+        },
+        dragValue: {
+            type: 'number',
+            default: 0
+        },
+        dragSpread: {
+            type: 'number',
+            default: 0
+        },
+        dragRandomise: {
+            type: 'boolean',
+            default: false
         },
         color: {
-            type: 'array'
+            type: 'array',
+            default: [ '#0000FF', '#FF0000' ]
         },
         size: {
-            type: 'number'
+            type: 'number',
+            default: 1
         },
         direction: {
-            type: 'number'
+            type: 'number',
+            default: 1
         },
         duration: {
-            type: 'number'
+            type: 'number',
+            default: null
         },
         particleCount: {
-            type: 'number'
+            type: 'number',
+            default: 1000
         },
         texture: {
-            type: 'asset'
+            type: 'asset',
+            default: 'https://cdn.rawgit.com/IdeaSpaceVR/aframe-particle-system-component/master/dist/images/star2.png'
         },
-        randomize: {
-            type: 'boolean'
+        randomise: {
+            type: 'boolean',
+            default: false
         },
         opacity: {
-          type: 'number',
+          type: 'array',
+          default: [ '1' ]
         },
         maxParticleCount: {
             type: 'number',
@@ -572,97 +606,59 @@ AFRAME.registerComponent('particle-system', {
             type: 'number',
             default: THREE.AdditiveBlending,
             oneOf: [THREE.NoBlending,THREE.NormalBlending,THREE.AdditiveBlending,THREE.SubtractiveBlending,THREE.MultiplyBlending]
+        },
+        enabled: {
+            type:'boolean',
+            default:true
         }
     },
 
 
     init: function() {
 
-        this.presets = [];
+        this.presets = {};
 
         /* preset settings can be overwritten */
 
-        this.presets['default'] = {
-            maxAge: (this.data.maxAge!==0?this.data.maxAge:6),
-            positionSpread: (this.data.positionSpread.x!==0||this.data.positionSpread.y!==0||this.data.positionSpread.z!==0?this.data.positionSpread:{x:0,y:0,z:0}),
-            type: (this.data.type!==0?this.data.type:SPE.distributions.BOX), /* SPE.distributions.SPHERE, SPE.distributions.DISC */
-            rotationAxis: (this.data.rotationAxis!==''?this.data.rotationAxis:'x'),
-            rotationAngle: (this.data.rotationAngle!==0?this.data.rotationAngle:0),
-            accelerationValue: (this.data.accelerationValue.x!==0||this.data.accelerationValue.y!==0||this.data.accelerationValue.z!==0?this.data.accelerationValue:{x: 0, y: -10, z: 0}),
-            accelerationSpread: (this.data.accelerationSpread.x!==0||this.data.accelerationSpread.y!==0||this.data.accelerationSpread.z!==0?this.data.accelerationSpread:{x: 10, y: 0, z: 10}),
-            velocityValue: (this.data.velocityValue.x!==0||this.data.velocityValue.y!==0||this.data.velocityValue.z!==0?this.data.velocityValue:{x: 0, y: 25, z: 0}),
-            velocitySpread: (this.data.velocitySpread.x!==0||this.data.velocitySpread.y!==0||this.data.velocitySpread.z!==0?this.data.velocitySpread:{x: 10, y: 7.5, z: 10}),
-            color: (this.data.color.length?this.data.color:['#0000FF','#FF0000']),
-            size: (this.data.size!==0?this.data.size:1),
-            opacity: { value: (this.data.opacity!=0?this.data.opacity:1) },
-            direction: (this.data.direction!==0?this.data.direction:1),
-            duration: (this.data.duration!=0?this.data.duration:null),
-            particleCount: (this.data.particleCount!==0?this.data.particleCount:1000),
-            texture: (this.data.texture!==''?this.data.texture:'https://cdn.rawgit.com/IdeaSpaceVR/aframe-particle-system-component/master/dist/images/star2.png'),
-            randomize: false
-        };
-
-
         this.presets['dust'] = {
-            maxAge: (this.data.maxAge!==0?this.data.maxAge:20),
-            positionSpread: (this.data.positionSpread.x!==0||this.data.positionSpread.y!==0||this.data.positionSpread.z!==0?this.data.positionSpread:{x:100,y:100,z:100}),
-            type: (this.data.type!==0?this.data.type:SPE.distributions.BOX), /* SPE.distributions.SPHERE, SPE.distributions.DISC */
-            rotationAxis: (this.data.rotationAxis!==''?this.data.rotationAxis:'x'),
-            rotationAngle: (this.data.rotationAngle!==0?this.data.rotationAngle:3.14),
-            accelerationValue: (this.data.accelerationValue.x!==0||this.data.accelerationValue.y!==0||this.data.accelerationValue.z!==0?this.data.accelerationValue:{x: 0, y: 0, z: 0}),
-            accelerationSpread: (this.data.accelerationSpread.x!==0||this.data.accelerationSpread.y!==0||this.data.accelerationSpread.z!==0?this.data.accelerationSpread:{x: 0, y: 0, z: 0}),
-            velocityValue: (this.data.velocityValue.x!==0||this.data.velocityValue.y!==0||this.data.velocityValue.z!==0?this.data.velocityValue:{x: 1, y: 0.3, z: 1}),
-            velocitySpread: (this.data.velocitySpread.x!==0||this.data.velocitySpread.y!==0||this.data.velocitySpread.z!==0?this.data.velocitySpread:{x: 0.5, y: 1, z: 0.5}),
-            color: (this.data.color.length?this.data.color:['#FFFFFF']),
-            size: (this.data.size!==0?this.data.size:1),
-            opacity: { value: (this.data.opacity!=0?this.data.opacity:1) },
-            direction: (this.data.direction!==0?this.data.direction:1),
-            duration: (this.data.duration!=0?this.data.duration:null),
-            particleCount: (this.data.particleCount!==0?this.data.particleCount:100),
-            texture: (this.data.texture!==''?this.data.texture:'https://cdn.rawgit.com/IdeaSpaceVR/aframe-particle-system-component/master/dist/images/smokeparticle.png'),
-            randomize: false
+            maxAge: 20,
+            positionSpread: {x:100,y:100,z:100},
+            rotationAngle: 3.14,
+            accelerationValue: {x: 0, y: 0, z: 0},
+            accelerationSpread: {x: 0, y: 0, z: 0},
+            velocityValue: {x: 1, y: 0.3, z: 1},
+            velocitySpread: {x: 0.5, y: 1, z: 0.5},
+            color: ['#FFFFFF'],
+            particleCount: 100,
+            texture: 'https://cdn.rawgit.com/IdeaSpaceVR/aframe-particle-system-component/master/dist/images/smokeparticle.png'
         };
 
 
         this.presets['snow'] = {
-            maxAge: (this.data.maxAge!==0?this.data.maxAge:20),
-            positionSpread: (this.data.positionSpread.x!==0||this.data.positionSpread.y!==0||this.data.positionSpread.z!==0?this.data.positionSpread:{x:100,y:100,z:100}),
-            type: (this.data.type!==0?this.data.type:SPE.distributions.BOX), /* SPE.distributions.SPHERE, SPE.distributions.DISC */
-            rotationAxis: (this.data.rotationAxis!==''?this.data.rotationAxis:'x'),
-            rotationAngle: (this.data.rotationAngle!==0?this.data.rotationAngle:3.14),
-            accelerationValue: (this.data.accelerationValue.x!==0||this.data.accelerationValue.y!==0||this.data.accelerationValue.z!==0?this.data.accelerationValue:{x: 0, y: 0, z: 0}),
-            accelerationSpread: (this.data.accelerationSpread.x!==0||this.data.accelerationSpread.y!==0||this.data.accelerationSpread.z!==0?this.data.accelerationSpread:{x: 0.2, y: 0, z: 0.2}),
-            velocityValue: (this.data.velocityValue.x!==0||this.data.velocityValue.y!==0||this.data.velocityValue.z!==0?this.data.velocityValue:{x: 0, y: 8, z: 0}),
-            velocitySpread: (this.data.velocitySpread.x!==0||this.data.velocitySpread.y!==0||this.data.velocitySpread.z!==0?this.data.velocitySpread:{x: 2, y: 0, z: 2}),
-            color: (this.data.color.length?this.data.color:['#FFFFFF']),
-            size: (this.data.size!==0?this.data.size:1),
-            opacity: { value: (this.data.opacity!=0?this.data.opacity:1) },
-            direction: (this.data.direction!==0?this.data.direction:1),
-            duration: (this.data.duration!=0?this.data.duration:null),
-            particleCount: (this.data.particleCount!==0?this.data.particleCount:200),
-            texture: (this.data.texture!==''?this.data.texture:'https://cdn.rawgit.com/IdeaSpaceVR/aframe-particle-system-component/master/dist/images/smokeparticle.png'),
-            randomize: false
+            maxAge: 20,
+            positionSpread: {x:100,y:100,z:100},
+            rotationAngle: 3.14,
+            accelerationValue: {x: 0, y: 0, z: 0},
+            accelerationSpread: {x: 0.2, y: 0, z: 0.2},
+            velocityValue: {x: 0, y: 8, z: 0},
+            velocitySpread: {x: 2, y: 0, z: 2},
+            color: ['#FFFFFF'],
+            particleCount: 200,
+            texture: 'https://cdn.rawgit.com/IdeaSpaceVR/aframe-particle-system-component/master/dist/images/smokeparticle.png'
         };
 
 
         this.presets['rain'] = {
-            maxAge: (this.data.maxAge!==0?this.data.maxAge:1),
-            positionSpread: (this.data.positionSpread.x!==0||this.data.positionSpread.y!==0||this.data.positionSpread.z!==0?this.data.positionSpread:{x:100,y:100,z:100}),
-            type: (this.data.type!==0?this.data.type:SPE.distributions.BOX), /* SPE.distributions.SPHERE, SPE.distributions.DISC */
-            rotationAxis: (this.data.rotationAxis!==''?this.data.rotationAxis:'x'),
-            rotationAngle: (this.data.rotationAngle!==0?this.data.rotationAngle:3.14),
-            accelerationValue: (this.data.accelerationValue.x!==0||this.data.accelerationValue.y!==0||this.data.accelerationValue.z!==0?this.data.accelerationValue:{x: 0, y: 3, z: 0}),
-            accelerationSpread: (this.data.accelerationSpread.x!==0||this.data.accelerationSpread.y!==0||this.data.accelerationSpread.z!==0?this.data.accelerationSpread:{x: 2, y: 1, z: 2}),
-            velocityValue: (this.data.velocityValue.x!==0||this.data.velocityValue.y!==0||this.data.velocityValue.z!==0?this.data.velocityValue:{x: 0, y: 75, z: 0}),
-            velocitySpread: (this.data.velocitySpread.x!==0||this.data.velocitySpread.y!==0||this.data.velocitySpread.z!==0?this.data.velocitySpread:{x: 10, y: 50, z: 10}),
-            color: (this.data.color.length?this.data.color:['#FFFFFF']),
-            size: (this.data.size!==0?this.data.size:0.4),
-            opacity: { value: (this.data.opacity!=0?this.data.opacity:1) },
-            direction: (this.data.direction!==0?this.data.direction:1),
-            duration: (this.data.duration!=0?this.data.duration:null),
-            particleCount: (this.data.particleCount!==0?this.data.particleCount:1000),
-            texture: (this.data.texture!==''?this.data.texture:'https://cdn.rawgit.com/IdeaSpaceVR/aframe-particle-system-component/master/dist/images/raindrop.png'),
-            randomize: false
+            maxAge: 1,
+            positionSpread: {x:100,y:100,z:100},
+            rotationAngle: 3.14,
+            accelerationValue: {x: 0, y: 3, z: 0},
+            accelerationSpread: {x: 2, y: 1, z: 2},
+            velocityValue: {x: 0, y: 75, z: 0},
+            velocitySpread: {x: 10, y: 50, z: 10},
+            color: ['#FFFFFF'],
+            size: 0.4,
+            texture: 'https://cdn.rawgit.com/IdeaSpaceVR/aframe-particle-system-component/master/dist/images/raindrop.png'
         };
 
 
@@ -676,15 +672,33 @@ AFRAME.registerComponent('particle-system', {
             this.el.removeObject3D('particle-system');
         }
 
-        if (this.data.preset != '' && this.data.preset in this.presets) {
+        // Set the selected preset, if any, or use an empty object to keep schema defaults
+        this.preset = this.presets[this.data.preset] || {};
 
-            this.initParticleSystem(this.presets[this.data.preset]);
-
-        } else {
-
-            this.initParticleSystem(this.presets['default']);
+        // Get custom, preset, or default data for each property defined in the schema
+        for (var key in this.data) {
+            this.data[key] = this.applyPreset(key);
         }
 
+        this.initParticleSystem(this.data);
+
+        if(this.data.enabled === true) {
+            this.startParticles()
+        } else {
+            this.stopParticles()
+        }
+    },
+
+
+    applyPreset: function (key) {
+        // !this.attrValue[key] = the user did not set a custom value
+        // this.preset[key] = there exists a value for this key in the selected preset
+        if (!this.attrValue[key] && this.preset[key]) {
+            return this.preset[key];
+        } else {
+            // Otherwise stick to the user or schema default value
+            return this.data[key];
+        }
     },
 
 
@@ -699,6 +713,14 @@ AFRAME.registerComponent('particle-system', {
         // Remove particle system.
         if (!this.particleGroup) { return; }
         this.el.removeObject3D('particle-system');
+    },
+
+    startParticles: function() {
+        this.particleGroup.emitters.forEach(function(em) { em.enable() });
+    },
+
+    stopParticles: function() {
+        this.particleGroup.emitters.forEach(function(em) { em.disable() });
     },
 
 
@@ -722,8 +744,8 @@ AFRAME.registerComponent('particle-system', {
             texture: {
                 value: particle_texture
             },
-            maxParticleCount: this.data.maxParticleCount,
-            blending: this.data.blending
+            maxParticleCount: settings.maxParticleCount,
+            blending: settings.blending
         });
 
         var emitter = new SPE.Emitter({
@@ -734,15 +756,15 @@ AFRAME.registerComponent('particle-system', {
                 value: settings.type
             },
             position: {
-                value: this.el.object3D.position,
                 spread: new THREE.Vector3(settings.positionSpread.x, settings.positionSpread.y, settings.positionSpread.z),
-                randomize: settings.randomize
+                randomise: settings.randomise
                 //spreadClamp: new THREE.Vector3( 2, 2, 2 ),
                 //radius: 4
             },
             rotation: {
                 axis: (settings.rotationAxis=='x'?new THREE.Vector3(1, 0, 0):(settings.rotationAxis=='y'?new THREE.Vector3(0, 1, 0):(settings.rotationAxis=='z'?new THREE.Vector3(0, 0, 1):new THREE.Vector3(0, 1, 0)))),
                 angle: settings.rotationAngle,
+                angleSpread: settings.rotationAngleSpread,
                 static: true
             },
             acceleration: {
@@ -752,6 +774,11 @@ AFRAME.registerComponent('particle-system', {
             velocity: {
                 value: new THREE.Vector3(settings.velocityValue.x, settings.velocityValue.y, settings.velocityValue.z),
                 spread: new THREE.Vector3(settings.velocitySpread.x, settings.velocitySpread.y, settings.velocitySpread.z)
+            },
+            drag: {
+                value: new THREE.Vector3(settings.dragValue.x, settings.dragValue.y, settings.dragValue.z),
+                spread: new THREE.Vector3(settings.dragSpread.x, settings.dragSpread.y, settings.dragSpread.z),
+                randomise: settings.dragRandomise
             },
             color: {
                 value: settings.color.map(function(c) { return new THREE.Color(c); })
@@ -767,7 +794,7 @@ AFRAME.registerComponent('particle-system', {
                 value: settings.direction
             },
             duration: settings.duration,
-            opacity: settings.opacity,
+            opacity: { value: settings.opacity.map(function (o) { return parseFloat(o); }) },
             particleCount: settings.particleCount
         });
 
@@ -783,7 +810,7 @@ require.register("aframe-particle-system-component/lib/SPE.js", function(exports
   require = __makeRelativeRequire(require, {}, "aframe-particle-system-component");
   (function() {
     /* shader-particle-engine 1.0.5
- * 
+ *
  * (c) 2015 Luke Moody (http://www.github.com/squarefeet)
  *     Originally based on Lee Stemkoski's original work (https://github.com/stemkoski/stemkoski.github.com/blob/master/Three.js/js/ParticleEngine.js).
  *
@@ -1689,6 +1716,7 @@ SPE.shaders = {
 
         THREE.ShaderChunk.common,
         THREE.ShaderChunk.logdepthbuf_pars_vertex,
+        THREE.ShaderChunk.fog_pars_vertex,
 
         SPE.shaderChunks.branchAvoidanceFunctions,
         SPE.shaderChunks.unpackColor,
@@ -1700,6 +1728,7 @@ SPE.shaders = {
         SPE.shaderChunks.rotationFunctions,
 
 
+        'vec4 mvPosition;',
         'void main() {',
 
 
@@ -1752,7 +1781,7 @@ SPE.shaders = {
         '    #endif',
 
         // Convert pos to a world-space value
-        '    vec4 mvPos = modelViewMatrix * vec4( pos, 1.0 );',
+        '    vec4 mvPos = mvPosition = modelViewMatrix * vec4( pos, 1.0 );',
 
         // Determine point size.
         '    highp float pointSize = getFloatOverLifetime( positionInTime, size ) * isAlive;',
@@ -1825,6 +1854,7 @@ SPE.shaders = {
         '    gl_Position = projectionMatrix * mvPos;',
 
         THREE.ShaderChunk.logdepthbuf_vertex,
+        THREE.ShaderChunk.fog_vertex,
 
         '}'
     ].join( '\n' ),
@@ -1852,10 +1882,10 @@ SPE.shaders = {
         THREE.ShaderChunk.logdepthbuf_fragment,
 
         '    outgoingLight = vColor.xyz * rotatedTexture.xyz;',
+		'    gl_FragColor = vec4( outgoingLight.xyz, rotatedTexture.w * vColor.w );',
 
         THREE.ShaderChunk.fog_fragment,
 
-        '    gl_FragColor = vec4( outgoingLight.xyz, rotatedTexture.w * vColor.w );',
         '}'
     ].join( '\n' )
 };
@@ -4369,22 +4399,30 @@ function doSetAttribute(el, props, propName) {
  * @param {Object} props - Current props map.
  */
 function updateAttributes(el, prevProps, props) {
+  var propName;
+
   if (!props || prevProps === props) {
     return;
   }
 
   // Set attributes.
-  Object.keys(props).filter(filterNonEntityPropNames).forEach(function (propName) {
+  for (propName in props) {
+    if (!filterNonEntityPropNames(propName)) {
+      continue;
+    }
     doSetAttribute(el, props, propName);
-  });
+  }
 
   // See if attributes were removed.
   if (prevProps) {
-    Object.keys(prevProps).filter(filterNonEntityPropNames).forEach(function (propName) {
+    for (propName in prevProps) {
+      if (!filterNonEntityPropNames(propName)) {
+        continue;
+      }
       if (props[propName] === undefined) {
         el.removeAttribute(propName);
       }
-    });
+    }
   }
 }
 
@@ -4410,6 +4448,8 @@ var Entity = exports.Entity = function (_React$Component) {
 
     return _ret = (_temp = (_this = _possibleConstructorReturn(this, (_ref = Entity.__proto__ || Object.getPrototypeOf(Entity)).call.apply(_ref, [this].concat(args))), _this), _this.initEntity = function (el) {
       var props = _this.props;
+      var eventName;
+
       if (!el) {
         return;
       }
@@ -4419,9 +4459,9 @@ var Entity = exports.Entity = function (_React$Component) {
 
       // Attach events.
       if (props.events) {
-        Object.keys(props.events).forEach(function (eventName) {
+        for (eventName in props.events) {
           addEventListeners(el, eventName, props.events[eventName]);
-        });
+        }
       }
 
       // Update entity.
@@ -4462,12 +4502,13 @@ var Entity = exports.Entity = function (_React$Component) {
     value: function componentWillUnmount() {
       var el = this.el;
       var props = this.props;
+      var eventName;
 
       if (props.events) {
         // Remove events.
-        Object.keys(props.events).forEach(function (eventName) {
+        for (eventName in props.events) {
           removeEventListeners(el, eventName, props.events[eventName]);
-        });
+        }
       }
     }
 
@@ -4480,14 +4521,15 @@ var Entity = exports.Entity = function (_React$Component) {
     value: function render() {
       var props = this.props;
       var elementName = this.isScene ? 'a-scene' : props.primitive || 'a-entity';
+      var propName;
 
       // Let through props that are OK to render initially.
       var reactProps = {};
-      Object.keys(props).forEach(function (propName) {
+      for (propName in props) {
         if (['className', 'id', 'mixin'].indexOf(propName) !== -1 || propName.indexOf('data-') === 0) {
           reactProps[propName] = props[propName];
         }
-      });
+      }
 
       return _react2.default.createElement(elementName, _extends({ ref: this.initEntity }, reactProps), props.children);
     }
@@ -4527,14 +4569,16 @@ var Scene = exports.Scene = function (_Entity) {
 
 
 function updateEventListeners(el, prevEvents, events) {
+  var eventName;
+
   if (!prevEvents || !events || prevEvents === events) {
     return;
   }
 
-  Object.keys(events).forEach(function (eventName) {
+  for (eventName in events) {
     // Didn't change.
     if (prevEvents[eventName] === events[eventName]) {
-      return;
+      continue;
     }
 
     // If changed, remove old previous event listeners.
@@ -4544,14 +4588,14 @@ function updateEventListeners(el, prevEvents, events) {
 
     // Add new event listeners.
     addEventListeners(el, eventName, events[eventName]);
-  });
+  }
 
   // See if event handlers were removed.
-  Object.keys(prevEvents).forEach(function (eventName) {
+  for (eventName in prevEvents) {
     if (!events[eventName]) {
       removeEventListeners(el, eventName, prevEvents[eventName]);
     }
-  });
+  }
 }
 
 /**
@@ -4562,6 +4606,9 @@ function updateEventListeners(el, prevEvents, events) {
  * @param {array|function} eventHandlers - Handler function or array of handler functions.
  */
 function addEventListeners(el, eventName, handlers) {
+  var handler;
+  var i;
+
   if (!handlers) {
     return;
   }
@@ -4572,9 +4619,9 @@ function addEventListeners(el, eventName, handlers) {
   }
 
   // Register.
-  handlers.forEach(function (handler) {
-    el.addEventListener(eventName, handler);
-  });
+  for (i = 0; i < handlers.length; i++) {
+    el.addEventListener(eventName, handlers[i]);
+  }
 }
 
 /**
@@ -4585,6 +4632,9 @@ function addEventListeners(el, eventName, handlers) {
  * @param {array|function} eventHandlers - Handler function or array of handler functions.
  */
 function removeEventListeners(el, eventName, handlers) {
+  var handler;
+  var i;
+
   if (!handlers) {
     return;
   }
@@ -4595,9 +4645,9 @@ function removeEventListeners(el, eventName, handlers) {
   }
 
   // Unregister.
-  handlers.forEach(function (handler) {
-    el.removeEventListener(eventName, handler);
-  });
+  for (i = 0; i < handlers.length; i++) {
+    el.removeEventListener(eventName, handlers[i]);
+  }
 }
   })();
 });
@@ -85954,68 +86004,103 @@ for (var i = 0, len = code.length; i < len; ++i) {
   revLookup[code.charCodeAt(i)] = i
 }
 
+// Support decoding URL-safe base64 strings, as Node.js does.
+// See: https://en.wikipedia.org/wiki/Base64#URL_applications
 revLookup['-'.charCodeAt(0)] = 62
 revLookup['_'.charCodeAt(0)] = 63
 
-function placeHoldersCount (b64) {
+function getLens (b64) {
   var len = b64.length
+
   if (len % 4 > 0) {
     throw new Error('Invalid string. Length must be a multiple of 4')
   }
 
-  // the number of equal signs (place holders)
-  // if there are two placeholders, than the two characters before it
-  // represent one byte
-  // if there is only one, then the three characters before it represent 2 bytes
-  // this is just a cheap hack to not do indexOf twice
-  return b64[len - 2] === '=' ? 2 : b64[len - 1] === '=' ? 1 : 0
+  // Trim off extra bytes after placeholder bytes are found
+  // See: https://github.com/beatgammit/base64-js/issues/42
+  var validLen = b64.indexOf('=')
+  if (validLen === -1) validLen = len
+
+  var placeHoldersLen = validLen === len
+    ? 0
+    : 4 - (validLen % 4)
+
+  return [validLen, placeHoldersLen]
 }
 
+// base64 is 4/3 + up to two characters of the original data
 function byteLength (b64) {
-  // base64 is 4/3 + up to two characters of the original data
-  return (b64.length * 3 / 4) - placeHoldersCount(b64)
+  var lens = getLens(b64)
+  var validLen = lens[0]
+  var placeHoldersLen = lens[1]
+  return ((validLen + placeHoldersLen) * 3 / 4) - placeHoldersLen
+}
+
+function _byteLength (b64, validLen, placeHoldersLen) {
+  return ((validLen + placeHoldersLen) * 3 / 4) - placeHoldersLen
 }
 
 function toByteArray (b64) {
-  var i, l, tmp, placeHolders, arr
-  var len = b64.length
-  placeHolders = placeHoldersCount(b64)
+  var tmp
+  var lens = getLens(b64)
+  var validLen = lens[0]
+  var placeHoldersLen = lens[1]
 
-  arr = new Arr((len * 3 / 4) - placeHolders)
+  var arr = new Arr(_byteLength(b64, validLen, placeHoldersLen))
+
+  var curByte = 0
 
   // if there are placeholders, only get up to the last complete 4 chars
-  l = placeHolders > 0 ? len - 4 : len
+  var len = placeHoldersLen > 0
+    ? validLen - 4
+    : validLen
 
-  var L = 0
-
-  for (i = 0; i < l; i += 4) {
-    tmp = (revLookup[b64.charCodeAt(i)] << 18) | (revLookup[b64.charCodeAt(i + 1)] << 12) | (revLookup[b64.charCodeAt(i + 2)] << 6) | revLookup[b64.charCodeAt(i + 3)]
-    arr[L++] = (tmp >> 16) & 0xFF
-    arr[L++] = (tmp >> 8) & 0xFF
-    arr[L++] = tmp & 0xFF
+  var i
+  for (i = 0; i < len; i += 4) {
+    tmp =
+      (revLookup[b64.charCodeAt(i)] << 18) |
+      (revLookup[b64.charCodeAt(i + 1)] << 12) |
+      (revLookup[b64.charCodeAt(i + 2)] << 6) |
+      revLookup[b64.charCodeAt(i + 3)]
+    arr[curByte++] = (tmp >> 16) & 0xFF
+    arr[curByte++] = (tmp >> 8) & 0xFF
+    arr[curByte++] = tmp & 0xFF
   }
 
-  if (placeHolders === 2) {
-    tmp = (revLookup[b64.charCodeAt(i)] << 2) | (revLookup[b64.charCodeAt(i + 1)] >> 4)
-    arr[L++] = tmp & 0xFF
-  } else if (placeHolders === 1) {
-    tmp = (revLookup[b64.charCodeAt(i)] << 10) | (revLookup[b64.charCodeAt(i + 1)] << 4) | (revLookup[b64.charCodeAt(i + 2)] >> 2)
-    arr[L++] = (tmp >> 8) & 0xFF
-    arr[L++] = tmp & 0xFF
+  if (placeHoldersLen === 2) {
+    tmp =
+      (revLookup[b64.charCodeAt(i)] << 2) |
+      (revLookup[b64.charCodeAt(i + 1)] >> 4)
+    arr[curByte++] = tmp & 0xFF
+  }
+
+  if (placeHoldersLen === 1) {
+    tmp =
+      (revLookup[b64.charCodeAt(i)] << 10) |
+      (revLookup[b64.charCodeAt(i + 1)] << 4) |
+      (revLookup[b64.charCodeAt(i + 2)] >> 2)
+    arr[curByte++] = (tmp >> 8) & 0xFF
+    arr[curByte++] = tmp & 0xFF
   }
 
   return arr
 }
 
 function tripletToBase64 (num) {
-  return lookup[num >> 18 & 0x3F] + lookup[num >> 12 & 0x3F] + lookup[num >> 6 & 0x3F] + lookup[num & 0x3F]
+  return lookup[num >> 18 & 0x3F] +
+    lookup[num >> 12 & 0x3F] +
+    lookup[num >> 6 & 0x3F] +
+    lookup[num & 0x3F]
 }
 
 function encodeChunk (uint8, start, end) {
   var tmp
   var output = []
   for (var i = start; i < end; i += 3) {
-    tmp = (uint8[i] << 16) + (uint8[i + 1] << 8) + (uint8[i + 2])
+    tmp =
+      ((uint8[i] << 16) & 0xFF0000) +
+      ((uint8[i + 1] << 8) & 0xFF00) +
+      (uint8[i + 2] & 0xFF)
     output.push(tripletToBase64(tmp))
   }
   return output.join('')
@@ -86025,7 +86110,6 @@ function fromByteArray (uint8) {
   var tmp
   var len = uint8.length
   var extraBytes = len % 3 // if we have 1 byte left, pad 2 bytes
-  var output = ''
   var parts = []
   var maxChunkLength = 16383 // must be multiple of 3
 
@@ -86037,18 +86121,20 @@ function fromByteArray (uint8) {
   // pad the end with zeros, but make sure to not forget the extra bytes
   if (extraBytes === 1) {
     tmp = uint8[len - 1]
-    output += lookup[tmp >> 2]
-    output += lookup[(tmp << 4) & 0x3F]
-    output += '=='
+    parts.push(
+      lookup[tmp >> 2] +
+      lookup[(tmp << 4) & 0x3F] +
+      '=='
+    )
   } else if (extraBytes === 2) {
-    tmp = (uint8[len - 2] << 8) + (uint8[len - 1])
-    output += lookup[tmp >> 10]
-    output += lookup[(tmp >> 4) & 0x3F]
-    output += lookup[(tmp << 2) & 0x3F]
-    output += '='
+    tmp = (uint8[len - 2] << 8) + uint8[len - 1]
+    parts.push(
+      lookup[tmp >> 10] +
+      lookup[(tmp >> 4) & 0x3F] +
+      lookup[(tmp << 2) & 0x3F] +
+      '='
+    )
   }
-
-  parts.push(output)
 
   return parts.join('')
 }
@@ -87520,9 +87606,10 @@ function blitBuffer (src, dst, offset, length) {
 require.register("ieee754/index.js", function(exports, require, module) {
   require = __makeRelativeRequire(require, {}, "ieee754");
   (function() {
-    exports.read = function (buffer, offset, isLE, mLen, nBytes) {
+    /*! ieee754. BSD-3-Clause License. Feross Aboukhadijeh <https://feross.org/opensource> */
+exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
-  var eLen = nBytes * 8 - mLen - 1
+  var eLen = (nBytes * 8) - mLen - 1
   var eMax = (1 << eLen) - 1
   var eBias = eMax >> 1
   var nBits = -7
@@ -87535,12 +87622,12 @@ require.register("ieee754/index.js", function(exports, require, module) {
   e = s & ((1 << (-nBits)) - 1)
   s >>= (-nBits)
   nBits += eLen
-  for (; nBits > 0; e = e * 256 + buffer[offset + i], i += d, nBits -= 8) {}
+  for (; nBits > 0; e = (e * 256) + buffer[offset + i], i += d, nBits -= 8) {}
 
   m = e & ((1 << (-nBits)) - 1)
   e >>= (-nBits)
   nBits += mLen
-  for (; nBits > 0; m = m * 256 + buffer[offset + i], i += d, nBits -= 8) {}
+  for (; nBits > 0; m = (m * 256) + buffer[offset + i], i += d, nBits -= 8) {}
 
   if (e === 0) {
     e = 1 - eBias
@@ -87555,7 +87642,7 @@ require.register("ieee754/index.js", function(exports, require, module) {
 
 exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
   var e, m, c
-  var eLen = nBytes * 8 - mLen - 1
+  var eLen = (nBytes * 8) - mLen - 1
   var eMax = (1 << eLen) - 1
   var eBias = eMax >> 1
   var rt = (mLen === 23 ? Math.pow(2, -24) - Math.pow(2, -77) : 0)
@@ -87588,7 +87675,7 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
       m = 0
       e = eMax
     } else if (e + eBias >= 1) {
-      m = (value * c - 1) * Math.pow(2, mLen)
+      m = ((value * c) - 1) * Math.pow(2, mLen)
       e = e + eBias
     } else {
       m = value * Math.pow(2, eBias - 1) * Math.pow(2, mLen)
@@ -87623,7 +87710,6 @@ require.register("preact/dist/preact.js", function(exports, require, module) {
   (function() {
     !function() {
     'use strict';
-    function VNode() {}
     function h(nodeName, attributes) {
         var lastSimple, child, simple, i, children = EMPTY_CHILDREN;
         for (i = arguments.length; i-- > 2; ) stack.push(arguments[i]);
@@ -87649,6 +87735,9 @@ require.register("preact/dist/preact.js", function(exports, require, module) {
         for (var i in props) obj[i] = props[i];
         return obj;
     }
+    function applyRef(ref, value) {
+        if (ref) if ('function' == typeof ref) ref(value); else ref.current = value;
+    }
     function cloneElement(vnode, props) {
         return h(vnode.nodeName, extend(extend({}, vnode.attributes), props), arguments.length > 2 ? [].slice.call(arguments, 2) : vnode.children);
     }
@@ -87656,9 +87745,8 @@ require.register("preact/dist/preact.js", function(exports, require, module) {
         if (!component.__d && (component.__d = !0) && 1 == items.push(component)) (options.debounceRendering || defer)(rerender);
     }
     function rerender() {
-        var p, list = items;
-        items = [];
-        while (p = list.pop()) if (p.__d) renderComponent(p);
+        var p;
+        while (p = items.pop()) if (p.__d) renderComponent(p);
     }
     function isSameNodeType(node, vnode, hydrating) {
         if ('string' == typeof vnode || 'number' == typeof vnode) return void 0 !== node.splitText;
@@ -87686,8 +87774,8 @@ require.register("preact/dist/preact.js", function(exports, require, module) {
     function setAccessor(node, name, old, value, isSvg) {
         if ('className' === name) name = 'class';
         if ('key' === name) ; else if ('ref' === name) {
-            if (old) old(null);
-            if (value) value(node);
+            applyRef(old, null);
+            applyRef(value, node);
         } else if ('class' === name && !isSvg) node.className = value || ''; else if ('style' === name) {
             if (!value || 'string' == typeof value || 'string' == typeof old) node.style.cssText = value || '';
             if (value && 'object' == typeof value) {
@@ -87704,24 +87792,21 @@ require.register("preact/dist/preact.js", function(exports, require, module) {
             } else node.removeEventListener(name, eventProxy, useCapture);
             (node.__l || (node.__l = {}))[name] = value;
         } else if ('list' !== name && 'type' !== name && !isSvg && name in node) {
-            setProperty(node, name, null == value ? '' : value);
-            if (null == value || !1 === value) node.removeAttribute(name);
+            try {
+                node[name] = null == value ? '' : value;
+            } catch (e) {}
+            if ((null == value || !1 === value) && 'spellcheck' != name) node.removeAttribute(name);
         } else {
-            var ns = isSvg && name !== (name = name.replace(/^xlink\:?/, ''));
+            var ns = isSvg && name !== (name = name.replace(/^xlink:?/, ''));
             if (null == value || !1 === value) if (ns) node.removeAttributeNS('http://www.w3.org/1999/xlink', name.toLowerCase()); else node.removeAttribute(name); else if ('function' != typeof value) if (ns) node.setAttributeNS('http://www.w3.org/1999/xlink', name.toLowerCase(), value); else node.setAttribute(name, value);
         }
-    }
-    function setProperty(node, name, value) {
-        try {
-            node[name] = value;
-        } catch (e) {}
     }
     function eventProxy(e) {
         return this.__l[e.type](options.event && options.event(e) || e);
     }
     function flushMounts() {
         var c;
-        while (c = mounts.pop()) {
+        while (c = mounts.shift()) {
             if (options.afterMount) options.afterMount(c);
             if (c.componentDidMount) c.componentDidMount();
         }
@@ -87798,7 +87883,7 @@ require.register("preact/dist/preact.js", function(exports, require, module) {
                     keyed[key] = void 0;
                     keyedLen--;
                 }
-            } else if (!child && min < childrenLen) for (j = min; j < childrenLen; j++) if (void 0 !== children[j] && isSameNodeType(c = children[j], vchild, isHydrating)) {
+            } else if (min < childrenLen) for (j = min; j < childrenLen; j++) if (void 0 !== children[j] && isSameNodeType(c = children[j], vchild, isHydrating)) {
                 child = c;
                 children[j] = void 0;
                 if (j === childrenLen - 1) childrenLen--;
@@ -87815,7 +87900,7 @@ require.register("preact/dist/preact.js", function(exports, require, module) {
     function recollectNodeTree(node, unmountOnly) {
         var component = node._component;
         if (component) unmountComponent(component); else {
-            if (null != node.__preactattr_ && node.__preactattr_.ref) node.__preactattr_.ref(null);
+            if (null != node.__preactattr_) applyRef(node.__preactattr_.ref, null);
             if (!1 === unmountOnly || null == node.__preactattr_) removeNode(node);
             removeChildren(node);
         }
@@ -87833,12 +87918,8 @@ require.register("preact/dist/preact.js", function(exports, require, module) {
         for (name in old) if ((!attrs || null == attrs[name]) && null != old[name]) setAccessor(dom, name, old[name], old[name] = void 0, isSvgMode);
         for (name in attrs) if (!('children' === name || 'innerHTML' === name || name in old && attrs[name] === ('value' === name || 'checked' === name ? dom[name] : old[name]))) setAccessor(dom, name, old[name], old[name] = attrs[name], isSvgMode);
     }
-    function collectComponent(component) {
-        var name = component.constructor.name;
-        (components[name] || (components[name] = [])).push(component);
-    }
     function createComponent(Ctor, props, context) {
-        var inst, list = components[Ctor.name];
+        var inst, i = recyclerComponents.length;
         if (Ctor.prototype && Ctor.prototype.render) {
             inst = new Ctor(props, context);
             Component.call(inst, props, context);
@@ -87847,22 +87928,24 @@ require.register("preact/dist/preact.js", function(exports, require, module) {
             inst.constructor = Ctor;
             inst.render = doRender;
         }
-        if (list) for (var i = list.length; i--; ) if (list[i].constructor === Ctor) {
-            inst.__b = list[i].__b;
-            list.splice(i, 1);
-            break;
+        while (i--) if (recyclerComponents[i].constructor === Ctor) {
+            inst.__b = recyclerComponents[i].__b;
+            recyclerComponents.splice(i, 1);
+            return inst;
         }
         return inst;
     }
     function doRender(props, state, context) {
         return this.constructor(props, context);
     }
-    function setComponentProps(component, props, opts, context, mountAll) {
+    function setComponentProps(component, props, renderMode, context, mountAll) {
         if (!component.__x) {
             component.__x = !0;
-            if (component.__r = props.ref) delete props.ref;
-            if (component.__k = props.key) delete props.key;
-            if (!component.base || mountAll) {
+            component.__r = props.ref;
+            component.__k = props.key;
+            delete props.ref;
+            delete props.key;
+            if (void 0 === component.constructor.getDerivedStateFromProps) if (!component.base || mountAll) {
                 if (component.componentWillMount) component.componentWillMount();
             } else if (component.componentWillReceiveProps) component.componentWillReceiveProps(props, context);
             if (context && context !== component.context) {
@@ -87872,18 +87955,22 @@ require.register("preact/dist/preact.js", function(exports, require, module) {
             if (!component.__p) component.__p = component.props;
             component.props = props;
             component.__x = !1;
-            if (0 !== opts) if (1 === opts || !1 !== options.syncComponentUpdates || !component.base) renderComponent(component, 1, mountAll); else enqueueRender(component);
-            if (component.__r) component.__r(component);
+            if (0 !== renderMode) if (1 === renderMode || !1 !== options.syncComponentUpdates || !component.base) renderComponent(component, 1, mountAll); else enqueueRender(component);
+            applyRef(component.__r, component);
         }
     }
-    function renderComponent(component, opts, mountAll, isChild) {
+    function renderComponent(component, renderMode, mountAll, isChild) {
         if (!component.__x) {
-            var rendered, inst, cbase, props = component.props, state = component.state, context = component.context, previousProps = component.__p || props, previousState = component.__s || state, previousContext = component.__c || context, isUpdate = component.base, nextBase = component.__b, initialBase = isUpdate || nextBase, initialChildComponent = component._component, skip = !1;
+            var rendered, inst, cbase, props = component.props, state = component.state, context = component.context, previousProps = component.__p || props, previousState = component.__s || state, previousContext = component.__c || context, isUpdate = component.base, nextBase = component.__b, initialBase = isUpdate || nextBase, initialChildComponent = component._component, skip = !1, snapshot = previousContext;
+            if (component.constructor.getDerivedStateFromProps) {
+                state = extend(extend({}, state), component.constructor.getDerivedStateFromProps(props, state));
+                component.state = state;
+            }
             if (isUpdate) {
                 component.props = previousProps;
                 component.state = previousState;
                 component.context = previousContext;
-                if (2 !== opts && component.shouldComponentUpdate && !1 === component.shouldComponentUpdate(props, state, context)) skip = !0; else if (component.componentWillUpdate) component.componentWillUpdate(props, state, context);
+                if (2 !== renderMode && component.shouldComponentUpdate && !1 === component.shouldComponentUpdate(props, state, context)) skip = !0; else if (component.componentWillUpdate) component.componentWillUpdate(props, state, context);
                 component.props = props;
                 component.state = state;
                 component.context = context;
@@ -87893,6 +87980,7 @@ require.register("preact/dist/preact.js", function(exports, require, module) {
             if (!skip) {
                 rendered = component.render(props, state, context);
                 if (component.getChildContext) context = extend(extend({}, context), component.getChildContext());
+                if (isUpdate && component.getSnapshotBeforeUpdate) snapshot = component.getSnapshotBeforeUpdate(previousProps, previousState);
                 var toUnmount, base, childComponent = rendered && rendered.nodeName;
                 if ('function' == typeof childComponent) {
                     var childProps = getNodeProps(rendered);
@@ -87910,7 +87998,7 @@ require.register("preact/dist/preact.js", function(exports, require, module) {
                     cbase = initialBase;
                     toUnmount = initialChildComponent;
                     if (toUnmount) cbase = component._component = null;
-                    if (initialBase || 1 === opts) {
+                    if (initialBase || 1 === renderMode) {
                         if (cbase) cbase._component = null;
                         base = diff(cbase, rendered, context, mountAll || !isUpdate, initialBase && initialBase.parentNode, !0);
                     }
@@ -87934,11 +88022,11 @@ require.register("preact/dist/preact.js", function(exports, require, module) {
                     base._componentConstructor = componentRef.constructor;
                 }
             }
-            if (!isUpdate || mountAll) mounts.unshift(component); else if (!skip) {
-                if (component.componentDidUpdate) component.componentDidUpdate(previousProps, previousState, previousContext);
+            if (!isUpdate || mountAll) mounts.push(component); else if (!skip) {
+                if (component.componentDidUpdate) component.componentDidUpdate(previousProps, previousState, snapshot);
                 if (options.afterUpdate) options.afterUpdate(component);
             }
-            if (null != component.__h) while (component.__h.length) component.__h.pop().call(component);
+            while (component.__h.length) component.__h.pop().call(component);
             if (!diffLevel && !isChild) flushMounts();
         }
     }
@@ -87975,23 +88063,28 @@ require.register("preact/dist/preact.js", function(exports, require, module) {
         component.base = null;
         var inner = component._component;
         if (inner) unmountComponent(inner); else if (base) {
-            if (base.__preactattr_ && base.__preactattr_.ref) base.__preactattr_.ref(null);
+            if (null != base.__preactattr_) applyRef(base.__preactattr_.ref, null);
             component.__b = base;
             removeNode(base);
-            collectComponent(component);
+            recyclerComponents.push(component);
             removeChildren(base);
         }
-        if (component.__r) component.__r(null);
+        applyRef(component.__r, null);
     }
     function Component(props, context) {
         this.__d = !0;
         this.context = context;
         this.props = props;
         this.state = this.state || {};
+        this.__h = [];
     }
     function render(vnode, parent, merge) {
         return diff(merge, vnode, {}, !1, parent, !1);
     }
+    function createRef() {
+        return {};
+    }
+    var VNode = function() {};
     var options = {};
     var stack = [];
     var EMPTY_CHILDREN = [];
@@ -88002,17 +88095,16 @@ require.register("preact/dist/preact.js", function(exports, require, module) {
     var diffLevel = 0;
     var isSvgMode = !1;
     var hydrating = !1;
-    var components = {};
+    var recyclerComponents = [];
     extend(Component.prototype, {
         setState: function(state, callback) {
-            var s = this.state;
-            if (!this.__s) this.__s = extend({}, s);
-            extend(s, 'function' == typeof state ? state(s, this.props) : state);
-            if (callback) (this.__h = this.__h || []).push(callback);
+            if (!this.__s) this.__s = this.state;
+            this.state = extend(extend({}, this.state), 'function' == typeof state ? state(this.state, this.props) : state);
+            if (callback) this.__h.push(callback);
             enqueueRender(this);
         },
         forceUpdate: function(callback) {
-            if (callback) (this.__h = this.__h || []).push(callback);
+            if (callback) this.__h.push(callback);
             renderComponent(this, 2);
         },
         render: function() {}
@@ -88021,6 +88113,7 @@ require.register("preact/dist/preact.js", function(exports, require, module) {
         h: h,
         createElement: h,
         cloneElement: cloneElement,
+        createRef: createRef,
         Component: Component,
         render: render,
         rerender: rerender,
@@ -88224,33 +88317,24 @@ process.umask = function() { return 0; };
 require.register("components/aframe-custom.js", function(exports, require, module) {
 'use strict';
 
-/**
- * @fileoverview 
- * This is our custom A-Frame component.
- * It is responsible for adding the outer wireframe mesh
- * and nodes to its vertices.
- */
-
 AFRAME.registerComponent('lowpoly', {
-  schema: {},
-
-  init: function init() {
-    // Get the ref of the object to which the component is attached
-    var obj = this.el.getObject3D('mesh');
-
-    // Grab the reference to the main WebGL scene
-    var scene = document.querySelector('a-scene').object3D;
+  schema: {
+    // Here we define our properties, their types and default values
+    color: { type: 'string', default: '#FFF' },
+    nodes: { type: 'boolean', default: false },
+    opacity: { type: 'number', default: 1.0 },
+    wireframe: { type: 'boolean', default: false }
   },
 
-  update: function update() {
-    // Get the ref of the object to which the component is attached
-    var obj = this.el.getObject3D('mesh');
+  init: function init() {
+    // This block gets executed when the component gets initialized.
+    // Then we can use our properties like so:
+    console.log('The color of our component is ', this.data.color);
   }
 });
-
 });
 
-require.register("components/aframe-effects.js", function(exports, require, module) {
+;require.register("components/aframe-effects.js", function(exports, require, module) {
 "use strict";
 
 (function (modules) {
@@ -88595,7 +88679,6 @@ require.register("components/aframe-effects.js", function(exports, require, modu
     }, diffuse: true, fragment: ["float $blendScreen(float base, float blend) {", "    return 1.0-((1.0-base)*(1.0-blend));", "}", "vec3 $blendScreen(vec3 base, vec3 blend) {", "    return vec3($blendScreen(base.r,blend.r),$blendScreen(base.g,blend.g),$blendScreen(base.b,blend.b));", "}", "vec3 $blendScreen(vec3 base, vec3 blend, float opacity) {", "    return ($blendScreen(base, blend) * opacity + base * (1.0 - opacity));", "}", "void $main(inout vec4 color, vec4 origColor, vec2 uv, float depth) {", "   vec4 texel = texture2D($texture, uv);", "   color.rgb = $blendScreen( color.rgb, texel.rgb, $intensity * $attenuation);", "}"].join("\n") });
 }]);
 //# sourceMappingURL=dist/afrane-effects.min.js.map
-
 });
 
 ;require.register("components/aframe-environment.js", function(exports, require, module) {
@@ -88819,7 +88902,6 @@ require.register("components/aframe-effects.js", function(exports, require, modu
         P = this.mix(z, k, w);return P;
   };
 }]);
-
 });
 
 require.register("initialize.js", function(exports, require, module) {
@@ -88855,7 +88937,6 @@ document.addEventListener('DOMContentLoaded', function () {
      * It also includes 3rd party A-Frame components.
      * Finally, it mounts the app to the root node.
      */
-
 });
 
 ;require.register("main.js", function(exports, require, module) {
@@ -88998,10 +89079,9 @@ var Main = function (_Component) {
 }(_preact.Component);
 
 exports.default = Main;
-
 });
 
-require.alias("aframe/dist/aframe-master.js", "aframe");
+;require.alias("aframe/dist/aframe-master.js", "aframe");
 require.alias("aframe-react/dist/index.js", "aframe-react");
 require.alias("animejs/anime.js", "animejs");
 require.alias("buffer/index.js", "buffer");
@@ -89104,6 +89184,5 @@ require.alias("preact", "react");process = require('process');require.register("
   connect();
 })();
 /* jshint ignore:end */
-
 ;
 //# sourceMappingURL=vendor.js.map
